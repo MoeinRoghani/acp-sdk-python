@@ -133,7 +133,7 @@ class ACPServer:
                 
                 # Determine HTTP status code based on response
                 http_status = 200
-                if "error" in response:
+                if "error" in response and response["error"] is not None:
                     error_code = response["error"].get("code", 0)
                     if error_code == -40007:  # Authentication failed
                         http_status = 401

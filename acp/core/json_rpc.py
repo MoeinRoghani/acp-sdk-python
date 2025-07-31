@@ -39,8 +39,12 @@ class JsonRpcContext:
         self.scopes = scopes or []
         self.headers = headers or {}
         self.timestamp = datetime.utcnow()
-        self.is_authenticated = user_id is not None
         self.correlation_id: Optional[str] = None
+    
+    @property
+    def is_authenticated(self) -> bool:
+        """Check if user is authenticated (has valid user_id)"""
+        return self.user_id is not None
     
     def has_scope(self, scope: str) -> bool:
         """Check if user has required OAuth2 scope"""
@@ -208,7 +212,7 @@ class JsonRpcProcessor:
                 result=validated_result
             )
             
-            return response.model_dump(by_alias=True)
+            return response.model_dump(by_alias=True, mode='json')
             
         except Exception as e:
             logger.error(f"Error creating success response: {e}")
@@ -234,7 +238,7 @@ class JsonRpcProcessor:
             error=error
         )
         
-        return response.model_dump(by_alias=True)
+        return response.model_dump(by_alias=True, mode='json')
     
     def create_notification(
         self, 
@@ -253,7 +257,7 @@ class JsonRpcProcessor:
                 params=params,
                 id=None  # No ID = notification
             )
-            return request.model_dump(by_alias=True, exclude_none=True)
+            return request.model_dump(by_alias=True, exclude_none=True, mode='json')
         except Exception as e:
             logger.error(f"Error creating notification: {e}")
             raise JsonRpcError(

@@ -39,7 +39,7 @@ class TestConfig:
     """Configuration for testing"""
     timeout: float = 30.0
     base_url: str = "https://test-agent.example.com"
-    auth_token: str = "test-token"
+    oauth_token: str = "test-token"
     log_level: str = "INFO"
 
 

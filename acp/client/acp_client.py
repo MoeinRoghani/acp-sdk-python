@@ -12,7 +12,7 @@ from pydantic import BaseModel
 from ..models.generated import (
     TasksCreateParams, TasksSendParams, TasksGetParams,
     StreamStartParams, StreamMessageParams,
-    JsonRpcRequest, JsonRpcResponse, RpcError
+    JsonRpcRequest, JsonRpcResponse, RpcError, Jsonrpc, Method
 )
 from ..core.json_rpc import JsonRpcError, JsonRpcProcessor
 from .auth import OAuth2Handler
@@ -40,17 +40,36 @@ class ACPClient:
         base_url: str,
         oauth_token: Optional[str] = None,
         oauth_config: Optional[Dict] = None,
-        timeout: float = 30.0
+        timeout: float = 30.0,
+        allow_http: bool = False
     ):
         """
         Initialize ACP client.
         
         Args:
-            base_url: Base URL of the target agent
-            oauth_token: OAuth2 bearer token
+            base_url: Base URL of the target agent (must be HTTPS unless allow_http=True)
+            oauth_token: OAuth2 bearer token (required for ACP compliance)
             oauth_config: OAuth2 configuration for automatic token refresh
             timeout: Request timeout in seconds
+            allow_http: Allow HTTP for local testing (INSECURE - only for development)
+            
+        Raises:
+            ValueError: If base_url is not HTTPS or OAuth2 token is missing
         """
+        # Validate HTTPS requirement (ACP protocol mandatory)
+        if not allow_http and not base_url.startswith('https://'):
+            raise ValueError(
+                "ACP protocol requires HTTPS only. "
+                f"Invalid URL: {base_url}. Use https:// instead, or set allow_http=True for local testing."
+            )
+        
+        # Validate OAuth2 requirement (ACP protocol mandatory) 
+        if not oauth_token and not oauth_config:
+            raise ValueError(
+                "ACP protocol requires OAuth2 authentication. "
+                "Provide either 'oauth_token' or 'oauth_config'."
+            )
+            
         self.base_url = base_url.rstrip('/')
         self.timeout = timeout
         
@@ -79,9 +98,9 @@ class ACPClient:
             TimeoutError: If the request times out
         """
         request = JsonRpcRequest(
-            jsonrpc="2.0",
-            method="tasks.create",
-            params=params.model_dump(by_alias=True),
+            jsonrpc=Jsonrpc.field_2_0,
+            method=Method.tasks_create,
+            params=params.model_dump(by_alias=True, mode='json'),
             id=self._generate_id()
         )
         
@@ -91,9 +110,9 @@ class ACPClient:
     async def tasks_send(self, params: TasksSendParams) -> Dict[str, Any]:
         """Send message to existing task."""
         request = JsonRpcRequest(
-            jsonrpc="2.0",
-            method="tasks.send",
-            params=params.model_dump(by_alias=True),
+            jsonrpc=Jsonrpc.field_2_0,
+            method=Method.tasks_send,
+            params=params.model_dump(by_alias=True, mode='json'),
             id=self._generate_id()
         )
         
@@ -103,9 +122,9 @@ class ACPClient:
     async def tasks_get(self, params: TasksGetParams) -> Dict[str, Any]:
         """Get task status and result."""
         request = JsonRpcRequest(
-            jsonrpc="2.0",
-            method="tasks.get",
-            params=params.model_dump(by_alias=True),
+            jsonrpc=Jsonrpc.field_2_0,
+            method=Method.tasks_get,
+            params=params.model_dump(by_alias=True, mode='json'),
             id=self._generate_id()
         )
         
@@ -115,9 +134,9 @@ class ACPClient:
     async def stream_start(self, params: StreamStartParams) -> Dict[str, Any]:
         """Start real-time stream with agent."""
         request = JsonRpcRequest(
-            jsonrpc="2.0",
-            method="stream.start",
-            params=params.model_dump(by_alias=True),
+            jsonrpc=Jsonrpc.field_2_0,
+            method=Method.stream_start,
+            params=params.model_dump(by_alias=True, mode='json'),
             id=self._generate_id()
         )
         
@@ -127,9 +146,9 @@ class ACPClient:
     async def stream_message(self, params: StreamMessageParams) -> Dict[str, Any]:
         """Send message in active stream."""
         request = JsonRpcRequest(
-            jsonrpc="2.0",
-            method="stream.message",
-            params=params.model_dump(by_alias=True),
+            jsonrpc=Jsonrpc.field_2_0,
+            method=Method.stream_message,
+            params=params.model_dump(by_alias=True, mode='json'),
             id=self._generate_id()
         )
         
@@ -165,7 +184,7 @@ class ACPClient:
             # Make request
             response = await self.client.post(
                 f"{self.base_url}/jsonrpc",
-                json=request.model_dump(by_alias=True),
+                json=request.model_dump(by_alias=True, mode='json'),
                 headers=headers
             )
             
@@ -187,7 +206,7 @@ class ACPClient:
             data = response.json()
             
             # Handle JSON-RPC errors
-            if "error" in data:
+            if "error" in data and data["error"] is not None:
                 error = RpcError.model_validate(data["error"])
                 raise JsonRpcError(
                     code=error.code,

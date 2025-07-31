@@ -47,21 +47,66 @@ Example agent capability discovery files:
 
 ## Running the Examples
 
-### Client Example
+### 🚀 Quick Local Test (Recommended)
+
+Run both server and client together for immediate testing:
 
 ```bash
-cd client/
-python basic_client.py
+cd examples/
+python local_test.py
 ```
 
-### Server Example
+This will:
+1. Start the local ACP server
+2. Run the client with test messages  
+3. Show the complete request/response flow
+4. Automatically clean up
+
+### 📋 Manual Testing
+
+#### Server Example
 
 ```bash  
 cd server/
 python basic_server.py
 ```
 
-The server will start on `http://localhost:8000` with the JSON-RPC endpoint at `/jsonrpc`.
+The server will start on `http://localhost:8001` with:
+- JSON-RPC endpoint: `/jsonrpc`
+- Health check: `/health`
+- Agent info: `/.well-known/agent.json`
+
+#### Client Example
+
+```bash
+cd client/
+python basic_client.py
+```
+
+**Note**: Start the server first, then run the client in another terminal.
+
+### 🧪 Local Testing Features
+
+The examples are designed for immediate local testing:
+
+#### Mock Authentication
+- **Server**: Accepts any OAuth2 token starting with `dev-`
+- **Client**: Uses `dev-local-test-token` for testing
+- **Validation**: Real OAuth2 validation disabled for local development
+
+#### Intelligent Responses  
+The local server provides context-aware mock responses:
+- **"hello"** → Greeting message
+- **"database"** → Database issue simulation  
+- **"search"** → Knowledge base search simulation
+- **"ticket"** → Ticket creation simulation
+- **"help"** → Help menu
+- **"test"** → Test confirmation
+
+#### Security Warnings ⚠️
+- **HTTP**: Local examples use HTTP for simplicity (production requires HTTPS)
+- **Mock OAuth**: Uses fake tokens (production requires real OAuth2)
+- **Development Only**: Never use `allow_http=True` in production
 
 ## Integration Examples
 
@@ -69,16 +114,16 @@ The server will start on `http://localhost:8000` with the JSON-RPC endpoint at `
 
 ```python
 from acp import Client
-from acp.models.generated import TasksCreateParams, Message, Part
+from acp.models.generated import TasksCreateParams, Message, Part, Role, Type
 
-client = Client("https://agent.example.com/jsonrpc")
+client = Client("https://agent.example.com")
 
 # Create a task
 response = await client.tasks_create(
     TasksCreateParams(
         initialMessage=Message(
-            role="user", 
-            parts=[Part(type="TextPart", content="Hello")]
+            role=Role.user, 
+            parts=[Part(type=Type.text_part, content="Hello")]
         )
     )
 )
@@ -87,9 +132,9 @@ response = await client.tasks_create(
 ### Server Usage
 
 ```python
-from acp import ACPServer
+from acp import Server
 
-server = ACPServer()
+server = Server()
 
 @server.method_handler("tasks.create")
 async def handle_task(params, context):
@@ -110,6 +155,25 @@ server.run()
 2. Review the basic examples above
 3. Copy and modify examples for your use case
 4. Check the [full documentation](https://docs.acp-protocol.org) for advanced features
+
+## Security Requirements ⚠️
+
+**ACP Protocol has mandatory security requirements:**
+
+### 🔒 HTTPS Only
+- All communication **MUST** use HTTPS (TLS 1.2+)
+- HTTP connections are **strictly prohibited**  
+- Example: ✅ `https://agent.example.com` ❌ `http://agent.example.com`
+
+### 🛡️ OAuth2 Required  
+- All API calls **MUST** include OAuth2 Bearer token
+- Either provide `oauth_token` or `oauth_config` 
+- Example: `Client(base_url="https://...", oauth_token="your-token")`
+
+### Validation
+The SDK automatically validates these requirements and will raise `ValueError` if:
+- Base URL doesn't start with `https://`
+- No OAuth2 authentication is provided
 
 ## Authentication
 
