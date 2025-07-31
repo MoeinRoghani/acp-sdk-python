@@ -1,0 +1,80 @@
+{
+  "name": "ServiceNow Search Agent",
+  "description": "Searches ServiceNow instances for tickets, knowledge articles, and CMDB items",
+  "version": "1.2.0",
+  "url": "https://apigw-app.com/servicenow-search-agent/v1/jsonrpc",
+  "provider": {
+    "organization": "YourCompany",
+    "contact": "moein.roghani@proton.me",
+    "website": "https://yourcompany.com/agents/servicenow"
+  },
+  "capabilities": {
+    "streaming": true,
+    "pushNotifications": true,
+    "fileUpload": true,
+    "multimodal": false
+  },
+  "authentication": {
+    "schemes": ["oauth2"],
+    "scopes": ["acp:agent:read", "servicenow:search", "servicenow:cmdb:read"]
+  },
+  "skills": [
+    {
+      "id": "ticket-search",
+      "name": "Search Tickets",
+      "description": "Search ServiceNow incident and request tickets",
+      "inputModes": ["text", "data"],
+      "outputModes": ["text", "data"],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": ["incident", "request", "problem", "change"]
+          },
+          "state": {
+            "type": "string", 
+            "enum": ["new", "in_progress", "resolved", "closed"]
+          },
+          "priority": {
+            "type": "string",
+            "enum": ["1", "2", "3", "4", "5"]
+          }
+        }
+      }
+    },
+    {
+      "id": "knowledge-search",
+      "name": "Search Knowledge Base",
+      "description": "Search ServiceNow knowledge articles and documentation",
+      "inputModes": ["text"],
+      "outputModes": ["text", "data"]
+    },
+    {
+      "id": "cmdb-lookup",
+      "name": "CMDB Configuration Item Lookup",
+      "description": "Look up configuration items in the ServiceNow CMDB",
+      "inputModes": ["text", "data"],
+      "outputModes": ["text", "data"],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "ci_class": {
+            "type": "string",
+            "description": "Configuration item class (e.g., 'cmdb_ci_server')"
+          },
+          "search_field": {
+            "type": "string",
+            "enum": ["name", "serial_number", "asset_tag", "ip_address"]
+          }
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "tags": ["servicenow", "itsm", "tickets", "cmdb", "enterprise"],
+    "category": "enterprise",
+    "popularity": 4.2,
+    "lastUpdated": "2024-01-20T14:45:00Z"
+  }
+} 

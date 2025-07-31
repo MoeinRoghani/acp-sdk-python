@@ -1,0 +1,194 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.acp-protocol.org/agent-card.schema.json",
+  "title": "ACP Agent Card Schema",
+  "description": "Schema for Agent Communication Protocol capability discovery cards",
+  "type": "object",
+  "required": [
+    "name",
+    "description", 
+    "version",
+    "url",
+    "provider"
+  ],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Human-readable agent name",
+      "minLength": 1,
+      "maxLength": 100,
+      "example": "Confluence Search Agent"
+    },
+    "description": {
+      "type": "string", 
+      "description": "Brief description of agent capabilities",
+      "minLength": 1,
+      "maxLength": 500,
+      "example": "Searches Confluence spaces and pages for relevant content"
+    },
+    "version": {
+      "type": "string",
+      "description": "Agent version following semantic versioning",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "example": "1.0.0"
+    },
+            "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "ACP JSON-RPC communication endpoint",
+          "pattern": "^https://",
+          "example": "https://apigw-app.com/confluence-search-agent/v1/jsonrpc"
+        },
+    "provider": {
+      "type": "object",
+      "required": ["organization"],
+      "properties": {
+        "organization": {
+          "type": "string",
+          "description": "Organization that provides this agent",
+          "example": "YourCompany"
+        },
+        "contact": {
+          "type": "string",
+          "format": "email",
+          "description": "Contact email for agent support"
+        },
+        "website": {
+          "type": "string",
+          "format": "uri",
+          "description": "Provider website URL"
+        }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "description": "Technical capabilities supported by this agent",
+      "properties": {
+        "streaming": {
+          "type": "boolean",
+          "description": "Supports real-time streaming communication",
+          "default": true
+        },
+        "pushNotifications": {
+          "type": "boolean", 
+          "description": "Supports webhook/push notifications",
+          "default": true
+        },
+        "fileUpload": {
+          "type": "boolean",
+          "description": "Supports file upload in messages",
+          "default": false
+        },
+        "multimodal": {
+          "type": "boolean",
+          "description": "Supports images, audio, and other media",
+          "default": false
+        }
+      }
+    },
+    "authentication": {
+      "type": "object",
+      "description": "Authentication requirements for this agent",
+      "properties": {
+        "schemes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["oauth2", "bearer", "apikey"]
+          },
+          "description": "Supported authentication schemes",
+          "default": ["oauth2"]
+        },
+        "scopes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Required OAuth2 scopes for access",
+          "example": ["acp:agent:read", "confluence:search"]
+        }
+      }
+    },
+    "skills": {
+      "type": "array",
+      "description": "Specific skills/functions this agent provides",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "description"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for this skill",
+            "pattern": "^[a-z0-9-]+$",
+            "example": "confluence-search"
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable skill name",
+            "example": "Search Confluence"
+          },
+          "description": {
+            "type": "string",
+            "description": "Detailed description of what this skill does",
+            "example": "Search across Confluence spaces and pages for relevant content"
+          },
+          "inputModes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["text", "data", "file", "image", "audio"]
+            },
+            "description": "Types of input this skill accepts",
+            "default": ["text"]
+          },
+          "outputModes": {
+            "type": "array", 
+            "items": {
+              "type": "string",
+              "enum": ["text", "data", "file", "image", "audio"]
+            },
+            "description": "Types of output this skill produces",
+            "default": ["text"]
+          },
+          "parameters": {
+            "type": "object",
+            "description": "Optional schema for skill-specific parameters",
+            "additionalProperties": true
+          }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata about the agent",
+      "properties": {
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Tags for categorizing this agent",
+          "example": ["search", "confluence", "productivity"]
+        },
+        "category": {
+          "type": "string",
+          "description": "Primary category for this agent",
+          "example": "productivity"
+        },
+        "popularity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5,
+          "description": "Agent popularity rating (0-5)"
+        },
+        "lastUpdated": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When this agent card was last updated"
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+} 

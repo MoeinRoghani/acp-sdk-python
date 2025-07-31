@@ -1,0 +1,591 @@
+openapi: 3.0.0
+info:
+  title: Agent Communication Protocol (ACP)
+  version: 1.0.0
+  description: >
+    ACP (Agent Communication Protocol): The industry-standard JSON‑RPC 2.0 framework 
+    for secure, scalable agent communication. Supports both asynchronous task 
+    delegation and real-time streaming conversations.
+    
+    **Security**: This protocol requires HTTPS transport for all communications to ensure
+    agent communication message confidentiality and integrity.
+    
+    **Note**: All URLs in this specification (acp-agent.example.com, auth.acp-protocol.org) 
+    are placeholder examples. Replace with actual endpoints during implementation.
+
+servers:
+  - url: https://acp-agent.example.com
+    description: Example ACP agent endpoint
+  - url: https://localhost:8000
+    description: Local development server
+
+security:
+  - OAuth2: []
+
+paths:
+  /jsonrpc:
+    post:
+      summary: ACP JSON-RPC Endpoint
+      description: >
+        Main endpoint for ACP agent communication using JSON-RPC 2.0.
+        Supports all ACP methods including task management and streaming.
+      operationId: jsonrpc
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonRpcRequest'
+            examples:
+              taskCreate:
+                summary: Create a new task
+                value:
+                  jsonrpc: "2.0"
+                  method: "tasks.create"
+                  params:
+                    agentId: "confluence-agent"
+                    initialMessage:
+                      role: "user"
+                      parts:
+                        - type: "TextPart"
+                          content: "Search for documents about API documentation"
+                    priority: "HIGH"
+                  id: "1"
+              streamStart:
+                summary: Start a streaming conversation
+                value:
+                  jsonrpc: "2.0"
+                  method: "stream.start"
+                  params:
+                    agentId: "chat-agent"
+                    initialMessage:
+                      role: "user"
+                      parts:
+                        - type: "TextPart"
+                          content: "Let's have a conversation about AI"
+                  id: "2"
+      responses:
+        '200':
+          description: JSON-RPC response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonRpcResponse'
+              examples:
+                taskResponse:
+                  summary: Task creation response
+                  value:
+                    jsonrpc: "2.0"
+                    result:
+                      type: "task"
+                      task:
+                        taskId: "task-12345"
+                        status: "SUBMITTED"
+                        priority: "HIGH"
+                        submittedAt: "2024-01-15T10:30:00Z"
+                        agentId: "confluence-agent"
+                        messages: []
+                        artifacts: []
+                    id: "1"
+                streamResponse:
+                  summary: Stream start response
+                  value:
+                    jsonrpc: "2.0"
+                    result:
+                      type: "stream"
+                      stream:
+                        streamId: "stream-67890"
+                        status: "ACTIVE"
+                        startedAt: "2024-01-15T10:30:00Z"
+                        agentId: "chat-agent"
+                        metadata: {}
+                    id: "2"
+        '400':
+          description: Bad Request - Invalid JSON-RPC
+        '401':
+          description: Unauthorized - Invalid authentication
+        '403':
+          description: Forbidden - Insufficient permissions
+        '500':
+          description: Internal Server Error
+
+components:
+  securitySchemes:
+    OAuth2:
+      type: oauth2
+      description: OAuth2 authentication for ACP agents
+      flows:
+        authorizationCode:
+          authorizationUrl: https://auth.acp-protocol.org/oauth2/authorize
+          tokenUrl: https://auth.acp-protocol.org/oauth2/token
+          scopes:
+            acp:agent:read: Read agent information and capabilities
+            acp:agent:write: Send requests to agents
+            acp:tasks:read: Read task status and results
+            acp:tasks:write: Create and modify tasks
+            acp:streams:read: Read streaming conversations
+            acp:streams:write: Participate in streaming conversations
+        clientCredentials:
+          tokenUrl: https://auth.acp-protocol.org/oauth2/token
+          scopes:
+            acp:agent:read: Read agent information and capabilities
+            acp:agent:write: Send requests to agents
+            acp:tasks:read: Read task status and results
+            acp:tasks:write: Create and modify tasks
+            acp:streams:read: Read streaming conversations
+            acp:streams:write: Participate in streaming conversations
+
+  schemas:
+    JsonRpcRequest:
+      type: object
+      required:
+        - jsonrpc
+        - method
+      properties:
+        jsonrpc:
+          type: string
+          enum: ["2.0"]
+        method:
+          type: string
+          enum:
+            # Task Methods (Async)
+            - "tasks.create"
+            - "tasks.send"
+            - "tasks.get"
+            - "tasks.cancel"
+            - "tasks.subscribe"
+            # Stream Methods (Real-time)
+            - "stream.start"
+            - "stream.message"
+            - "stream.end"
+            # Notifications (Server-initiated)
+            - "task.notification"
+            - "stream.chunk"
+        params:
+          oneOf:
+            - $ref: '#/components/schemas/TasksCreateParams'
+            - $ref: '#/components/schemas/TasksSendParams'
+            - $ref: '#/components/schemas/TasksGetParams'
+            - $ref: '#/components/schemas/TasksCancelParams'
+            - $ref: '#/components/schemas/TasksSubscribeParams'
+            - $ref: '#/components/schemas/StreamStartParams'
+            - $ref: '#/components/schemas/StreamMessageParams'
+            - $ref: '#/components/schemas/StreamEndParams'
+            - $ref: '#/components/schemas/TaskNotificationParams'
+            - $ref: '#/components/schemas/StreamChunkParams'
+        id:
+          oneOf:
+            - type: string
+            - type: integer
+          nullable: true
+      additionalProperties: false
+
+    JsonRpcResponse:
+      type: object
+      required:
+        - jsonrpc
+        - id
+      properties:
+        jsonrpc:
+          type: string
+          enum: ["2.0"]
+        id:
+          oneOf:
+            - type: string
+            - type: integer
+          nullable: true
+        result:
+          $ref: '#/components/schemas/MethodResult'
+        error:
+          $ref: '#/components/schemas/RpcError'
+      additionalProperties: false
+      anyOf:
+        - required: ["result"]
+        - required: ["error"]
+      not:
+        allOf:
+          - required: ["result"]
+          - required: ["error"]
+
+    RpcError:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: integer
+          description: >
+            Standard JSON-RPC error codes:
+            -32700: Parse error
+            -32600: Invalid Request  
+            -32601: Method not found
+            -32602: Invalid params
+            -32603: Internal error
+            
+            ACP-specific error codes:
+            -40001: Task not found
+            -40002: Task already completed
+            -40003: Stream not found
+            -40004: Stream already closed
+            -40005: Agent not available
+            -40006: Permission denied
+            -40007: Authentication failed
+            -40008: Insufficient OAuth2 scope
+            -40009: OAuth2 token expired
+        message:
+          type: string
+        data:
+          nullable: true
+          description: Additional error context
+      additionalProperties: false
+
+    # =============================================================================
+    # TASK SCHEMAS (Async, Non-blocking Pattern)
+    # =============================================================================
+
+    TaskObject:
+      type: object
+      required:
+        - taskId
+        - status
+        - createdAt
+      properties:
+        taskId:
+          type: string
+          description: Unique identifier for the task
+        status:
+          type: string
+          enum:
+            - SUBMITTED    # Task created, waiting to be processed
+            - WORKING      # Agent is actively processing
+            - INPUT_REQUIRED # Agent needs additional input
+            - COMPLETED    # Task finished successfully
+            - FAILED       # Task failed with error
+            - CANCELED     # Task was cancelled
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        assignedAgent:
+          type: string
+          description: ID of agent processing this task
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+          description: Conversation history for this task
+        artifacts:
+          type: array
+          items:
+            $ref: '#/components/schemas/Artifact'
+          description: Files, data, or outputs generated during task execution
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Custom task metadata
+
+    TasksCreateParams:
+      type: object
+      required: [initialMessage]
+      properties:
+        initialMessage:
+          $ref: '#/components/schemas/Message'
+        assignTo:
+          type: string
+          description: Specific agent ID to assign task to
+        priority:
+          type: string
+          enum: [LOW, NORMAL, HIGH, URGENT]
+          default: NORMAL
+        metadata:
+          type: object
+          additionalProperties: true
+
+    TasksSendParams:
+      type: object
+      required: [taskId, message]
+      properties:
+        taskId:
+          type: string
+        message:
+          $ref: '#/components/schemas/Message'
+
+    TasksGetParams:
+      type: object
+      required: [taskId]
+      properties:
+        taskId:
+          type: string
+        includeMessages:
+          type: boolean
+          default: true
+        includeArtifacts:
+          type: boolean  
+          default: true
+
+    TasksCancelParams:
+      type: object
+      required: [taskId]
+      properties:
+        taskId:
+          type: string
+        reason:
+          type: string
+          description: Reason for cancellation
+
+    TasksSubscribeParams:
+      type: object
+      required: [taskId, callbackUrl]
+      properties:
+        taskId:
+          type: string
+        callbackUrl:
+          type: string
+          format: uri
+          description: Webhook URL for task notifications
+        events:
+          type: array
+          items:
+            type: string
+            enum: [STATUS_CHANGE, NEW_MESSAGE, NEW_ARTIFACT, COMPLETED, FAILED]
+          default: [STATUS_CHANGE, COMPLETED, FAILED]
+
+    TaskNotificationParams:
+      type: object
+      required: [taskId, event, timestamp]
+      properties:
+        taskId:
+          type: string
+        event:
+          type: string
+          enum: [STATUS_CHANGE, NEW_MESSAGE, NEW_ARTIFACT, COMPLETED, FAILED]
+        timestamp:
+          type: string
+          format: date-time
+        data:
+          oneOf:
+            - $ref: '#/components/schemas/TaskObject'
+            - $ref: '#/components/schemas/Message'
+            - $ref: '#/components/schemas/Artifact'
+
+    # =============================================================================
+    # STREAM SCHEMAS (Real-time, Interactive Pattern)  
+    # =============================================================================
+
+    StreamObject:
+      type: object
+      required:
+        - streamId
+        - status
+        - participants
+      properties:
+        streamId:
+          type: string
+          description: Unique identifier for the stream
+        status:
+          type: string
+          enum:
+            - ACTIVE      # Stream is open and active
+            - PAUSED      # Stream temporarily paused
+            - CLOSED      # Stream ended
+        participants:
+          type: array
+          items:
+            type: string
+          description: Agent IDs participating in stream
+        createdAt:
+          type: string
+          format: date-time
+        closedAt:
+          type: string
+          format: date-time
+        metadata:
+          type: object
+          additionalProperties: true
+
+    StreamStartParams:
+      type: object
+      properties:
+        participants:
+          type: array
+          items:
+            type: string
+          description: Agent IDs to include in stream
+        metadata:
+          type: object
+          additionalProperties: true
+
+    StreamMessageParams:
+      type: object
+      required: [streamId, message]
+      properties:
+        streamId:
+          type: string
+        message:
+          $ref: '#/components/schemas/Message'
+
+    StreamEndParams:
+      type: object
+      required: [streamId]
+      properties:
+        streamId:
+          type: string
+        reason:
+          type: string
+          description: Reason for ending stream
+
+    StreamChunkParams:
+      type: object
+      required: [streamId, chunk, sequence]
+      properties:
+        streamId:
+          type: string
+        chunk:
+          $ref: '#/components/schemas/Message'
+        sequence:
+          type: integer
+          description: Sequence number for ordering chunks
+        isLast:
+          type: boolean
+          default: false
+          description: Indicates if this is the final chunk
+
+    # =============================================================================
+    # SHARED SCHEMAS
+    # =============================================================================
+
+    Message:
+      type: object
+      required: [role, parts]
+      properties:
+        role:
+          type: string
+          enum: [user, agent, system]
+        parts:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/Part'
+        timestamp:
+          type: string
+          format: date-time
+        agentId:
+          type: string
+          description: ID of agent that sent this message
+
+    Part:
+      type: object
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum: [TextPart, DataPart, FilePart, ImagePart, AudioPart]
+        content:
+          nullable: true
+          description: Text content or data payload
+        mimeType:
+          type: string
+          description: MIME type for data/file parts
+        filename:
+          type: string
+          description: Original filename for file parts
+        size:
+          type: integer
+          description: Size in bytes for data/file parts
+        encoding:
+          type: string
+          enum: [base64, utf8, binary]
+          description: Encoding for data parts
+      additionalProperties: true
+
+    Artifact:
+      type: object
+      required: [artifactId, name, parts]
+      properties:
+        artifactId:
+          type: string
+          description: Unique identifier for artifact
+        name:
+          type: string
+          description: Human-readable artifact name
+        description:
+          type: string
+          description: Description of artifact contents/purpose
+        parts:
+          type: array
+          items:
+            $ref: '#/components/schemas/Part'
+        createdAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+          description: Agent ID that created this artifact
+        version:
+          type: string
+          description: Artifact version number
+        metadata:
+          type: object
+          additionalProperties: true
+
+    # =============================================================================
+    # RESPONSE SCHEMAS
+    # =============================================================================
+
+    MethodResult:
+      type: object
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum: [task, stream, subscription, notification, success]
+        task:
+          $ref: '#/components/schemas/TaskObject'
+        stream:  
+          $ref: '#/components/schemas/StreamObject'
+        subscription:
+          $ref: '#/components/schemas/SubscriptionObject'
+        message:
+          type: string
+          description: Success message for simple operations
+      oneOf:
+        - properties:
+            type:
+              enum: [task]
+          required: [task]
+        - properties:
+            type:
+              enum: [stream]
+          required: [stream]
+        - properties:
+            type:
+              enum: [subscription]
+          required: [subscription]
+        - properties:
+            type:
+              enum: [notification, success]
+          required: [message]
+
+    SubscriptionObject:
+      type: object
+      required: [subscriptionId, taskId, callbackUrl, events]
+      properties:
+        subscriptionId:
+          type: string
+        taskId:
+          type: string
+        callbackUrl:
+          type: string
+          format: uri
+        events:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        active:
+          type: boolean
+          default: true
+

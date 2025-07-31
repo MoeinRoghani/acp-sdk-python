@@ -1,0 +1,34 @@
+{
+  "name": "Confluence Search Agent",
+  "description": "Searches Confluence spaces and pages for relevant content",
+  "version": "1.0.0",
+  "url": "https://apigw-app.com/confluence-search-agent/v1/jsonrpc",
+  "provider": {
+    "organization": "YourCompany",
+    "contact": "moein.roghani@proton.me"
+  },
+  "capabilities": {
+    "streaming": true,
+    "pushNotifications": true,
+    "fileUpload": false,
+    "multimodal": false
+  },
+  "authentication": {
+    "schemes": ["oauth2"],
+    "scopes": ["acp:agent:read", "confluence:search"]
+  },
+  "skills": [
+    {
+      "id": "confluence-search",
+      "name": "Search Confluence",
+      "description": "Search across Confluence spaces and pages",
+      "inputModes": ["text"],
+      "outputModes": ["text", "data"]
+    }
+  ],
+  "metadata": {
+    "tags": ["search", "confluence", "productivity"],
+    "category": "productivity",
+    "lastUpdated": "2024-01-15T10:30:00Z"
+  }
+} 
