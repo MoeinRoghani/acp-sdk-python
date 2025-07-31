@@ -8,7 +8,7 @@ Homepage: https://acp-protocol.org
 Documentation: https://docs.acp-protocol.org
 """
 
-__version__ = "1.0.0"
+__version__ = "1.1.1"
 __author__ = "Moein Roghani"
 __email__ = "moein.roghani@proton.me"
 __license__ = "MIT"
@@ -53,7 +53,7 @@ from .core.validation import (
 )
 
 # Authentication utilities
-from .client.auth import OAuth2Handler
+from .client.auth import OAuth2Handler, OAuth2Config
 
 # Essential exports for clean API
 __all__ = [
@@ -92,6 +92,7 @@ __all__ = [
     
     # Authentication
     "OAuth2Handler",
+    "OAuth2Config",
 ] 
 
 # Package metadata

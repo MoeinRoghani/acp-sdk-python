@@ -72,7 +72,7 @@ The Router Agent acts as the **central coordinator** for all agent communication
 
 ```python
 # enterprise/router_agent.py
-from acp import ACPClient
+from acp import Client
 from acp.models.generated import TasksCreateParams, Message, Part
 from typing import Dict, List, Optional
 import asyncio
@@ -88,7 +88,7 @@ class EnterpriseRouterAgent:
     def __init__(self, discovery_service_url: str, apigee_config: dict):
         self.discovery_service = AgentDiscoveryClient(discovery_service_url)
         self.apigee_config = apigee_config
-        self.agent_clients: Dict[str, ACPClient] = {}
+        self.agent_clients: Dict[str, Client] = {}
         self.load_balancer = AgentLoadBalancer()
     
     async def initialize(self):
@@ -98,7 +98,7 @@ class EnterpriseRouterAgent:
         
         # Create ACP clients for each agent
         for agent in agents:
-            client = ACPClient(
+            client = Client(
                 base_url=agent.url,
                 oauth_config=self.apigee_config,
                 timeout=30.0

@@ -68,10 +68,10 @@ The server will start on `http://localhost:8000` with the JSON-RPC endpoint at `
 ### Client Usage
 
 ```python
-from acp import ACPClient
+from acp import Client
 from acp.models.generated import TasksCreateParams, Message, Part
 
-client = ACPClient("https://agent.example.com/jsonrpc")
+client = Client("https://agent.example.com/jsonrpc")
 
 # Create a task
 response = await client.tasks_create(

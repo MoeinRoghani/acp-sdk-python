@@ -6,7 +6,7 @@ Demonstrates how to use the ACP client to communicate with remote agents.
 """
 
 import asyncio
-from acp import ACPClient
+from acp import Client
 from acp.models.generated import TasksCreateParams, Message, Part
 
 
@@ -14,7 +14,7 @@ async def main():
     """Basic client usage example"""
     
     # Create client instance
-    client = ACPClient(
+    client = Client(
         base_url="https://confluence-agent.example.com/jsonrpc",
         auth_token="your-oauth2-token-here"
     )

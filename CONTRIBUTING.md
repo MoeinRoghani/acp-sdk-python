@@ -256,13 +256,13 @@ tests/
 
 ```python
 import pytest
-from acp import ACPClient
+from acp import Client
 from acp.models.generated import TasksCreateParams, Message, Part
 
 class TestTaskCreation:
     @pytest.fixture
     def client(self):
-        return ACPClient("https://test.example.com")
+        return Client("https://test.example.com")
     
     @pytest.mark.asyncio
     async def test_create_task_success(self, client, mock_response):
