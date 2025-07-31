@@ -129,5 +129,5 @@ Quick Start:
 For more information:
 - Documentation: https://docs.acp-protocol.org
 - Protocol Spec: https://acp-protocol.org/spec
-- Examples: https://github.com/acp-protocol/acp-python/tree/main/examples
+- Examples: https://github.com/MoeinRoghani/acp-sdk-python/tree/main/examples
 """ 

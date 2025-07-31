@@ -55,6 +55,6 @@ acp = "acp.cli:main"
 [project.urls]
 Homepage = "https://acp-protocol.org"
 Documentation = "https://docs.acp-protocol.org"
-Repository = "https://github.com/acp-protocol/acp-python"
-"Bug Tracker" = "https://github.com/acp-protocol/acp-python/issues"
+Repository = "https://github.com/MoeinRoghani/acp-sdk-python"
+"Bug Tracker" = "https://github.com/MoeinRoghani/acp-sdk-python/issues"
 "Protocol Specification" = "https://acp-protocol.org/spec"

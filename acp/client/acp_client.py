@@ -60,7 +60,7 @@ class ACPClient:
         # Setup HTTP client
         self.client = httpx.AsyncClient(
             timeout=httpx.Timeout(timeout),
-            headers={"User-Agent": "ACP-Python-SDK/1.0.0"}
+            headers={"User-Agent": "ACP-SDK-Python/1.0.0"}
         )
     
     async def tasks_create(self, params: TasksCreateParams) -> Dict[str, Any]:

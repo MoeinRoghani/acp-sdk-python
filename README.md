@@ -202,7 +202,7 @@ ACP is an open protocol welcoming contributions:
 3. **Documentation**: Help make ACP more accessible
 4. **Testing**: Add test cases and improve reliability
 
-See our [Contributing Guide](https://github.com/acp-protocol/acp-python/blob/main/CONTRIBUTING.md) for details.
+See our [Contributing Guide](https://github.com/MoeinRoghani/acp-sdk-python/blob/main/CONTRIBUTING.md) for details.
 
 ## 📄 **License**
 
@@ -213,8 +213,8 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 - **🌐 Protocol Website**: [acp-protocol.org](https://acp-protocol.org)
 - **📚 Documentation**: [docs.acp-protocol.org](https://docs.acp-protocol.org)
 - **🐙 GitHub**: [github.com/acp-protocol](https://github.com/acp-protocol)
-- **💬 Discussions**: [GitHub Discussions](https://github.com/acp-protocol/acp-python/discussions)
-- **🐛 Issues**: [GitHub Issues](https://github.com/acp-protocol/acp-python/issues)
+- **💬 Discussions**: [GitHub Discussions](https://github.com/MoeinRoghani/acp-sdk-python/discussions)
+- **🐛 Issues**: [GitHub Issues](https://github.com/MoeinRoghani/acp-sdk-python/issues)
 
 ---
 

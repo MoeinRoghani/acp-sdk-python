@@ -24,12 +24,12 @@ setup(
     description="Python implementation of the Agent Communication Protocol (ACP)",
     long_description=read_readme(),
     long_description_content_type="text/markdown",
-    url="https://github.com/acp-protocol/acp-python",
+    url="https://github.com/MoeinRoghani/acp-sdk-python",
     project_urls={
-        "Bug Tracker": "https://github.com/acp-protocol/acp-python/issues",
+        "Bug Tracker": "https://github.com/MoeinRoghani/acp-sdk-python/issues",
         "Documentation": "https://docs.acp-protocol.org",
         "Protocol Specification": "https://acp-protocol.org/spec",
-        "Source Code": "https://github.com/acp-protocol/acp-python",
+        "Source Code": "https://github.com/MoeinRoghani/acp-sdk-python",
     },
     classifiers=[
         "Development Status :: 4 - Beta",

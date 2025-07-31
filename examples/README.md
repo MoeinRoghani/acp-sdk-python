@@ -9,7 +9,7 @@ This directory contains practical examples demonstrating how to use the ACP Pyth
 1. Python 3.8+
 2. Install the ACP Python SDK:
    ```bash
-   pip install acp-python
+   pip install acp-sdk-python
    ```
 
 ## Examples Overview
@@ -106,7 +106,7 @@ server.run()
 
 ## Getting Started
 
-1. Install the SDK: `pip install acp-python`
+1. Install the SDK: `pip install acp-sdk-python`
 2. Review the basic examples above
 3. Copy and modify examples for your use case
 4. Check the [full documentation](https://docs.acp-protocol.org) for advanced features
@@ -123,4 +123,4 @@ For more advanced examples including:
 - Complex task workflows
 - Production deployment patterns
 
-Visit: [https://github.com/acp-protocol/acp-python/tree/main/examples](https://github.com/acp-protocol/acp-python/tree/main/examples) 
+Visit: [https://github.com/MoeinRoghani/acp-sdk-python/tree/main/examples](https://github.com/MoeinRoghani/acp-sdk-python/tree/main/examples) 

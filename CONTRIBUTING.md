@@ -32,8 +32,8 @@ This project adheres to a [Code of Conduct](CODE_OF_CONDUCT.md). By participatin
 1. Fork the repository on GitHub
 2. Clone your fork locally:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/acp-python.git
-   cd acp-python
+   git clone https://github.com/YOUR_USERNAME/acp-sdk-python.git
+cd acp-sdk-python
    ```
 
 ## Development Setup
@@ -46,8 +46,8 @@ python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Using conda
-conda create -n acp-python python=3.11
-conda activate acp-python
+conda create -n acp-sdk-python python=3.11
+conda activate acp-sdk-python
 ```
 
 ### 2. Install Development Dependencies
@@ -398,9 +398,9 @@ We follow [Semantic Versioning](https://semver.org/):
 
 ## Getting Help
 
-- **Documentation**: [https://acp-python.readthedocs.io](https://acp-python.readthedocs.io)
-- **Issues**: [GitHub Issues](https://github.com/moein-roghani/acp-python/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/moein-roghani/acp-python/discussions)
+- **Documentation**: [https://acp-sdk-python.readthedocs.io](https://acp-sdk-python.readthedocs.io)
+- **Issues**: [GitHub Issues](https://github.com/MoeinRoghani/acp-sdk-python/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/MoeinRoghani/acp-sdk-python/discussions)
 - **Email**: [moein.roghani@proton.me](mailto:moein.roghani@proton.me)
 
 ## Recognition
