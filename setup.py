@@ -18,7 +18,7 @@ def read_requirements():
 
 setup(
     name="acp-sdk-python",
-    version="1.1.2",
+    version="1.3.0",
     author="Moein Roghani",
     author_email="moein.roghani@proton.me",
     description="Python implementation of the Agent Communication Protocol (ACP)",

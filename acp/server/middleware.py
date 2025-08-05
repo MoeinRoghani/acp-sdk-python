@@ -5,6 +5,7 @@ Middleware components for authentication, logging, and request processing
 in the ACP server.
 """
 
+import os
 import time
 import uuid
 import logging
@@ -15,8 +16,71 @@ from fastapi.responses import JSONResponse
 from ..core.json_rpc import JsonRpcContext
 from ..exceptions import AuthenticationFailed, TokenExpired
 
-
 logger = logging.getLogger(__name__)
+
+# Import JWT validation for real OAuth2 support
+try:
+    import jwt
+    JWT_AVAILABLE = True
+except ImportError:
+    JWT_AVAILABLE = False
+    logger.warning("PyJWT not available - install with: pip install PyJWT")
+
+# OAuth2 configuration
+ENVIRONMENT = os.getenv("ACP_ENVIRONMENT", "production").lower()
+
+# OAuth2 Provider Configuration
+OAUTH_JWKS_URL = os.getenv("OAUTH_JWKS_URL", "")
+OAUTH_ISSUER = os.getenv("OAUTH_ISSUER", "")
+OAUTH_AUDIENCE = os.getenv("OAUTH_AUDIENCE", "")
+
+# OAuth2 Provider Type (auth0, google, azure, okta, custom)
+OAUTH_PROVIDER = os.getenv("OAUTH_PROVIDER", "")
+OAUTH_DOMAIN = os.getenv("OAUTH_DOMAIN", "")  # For auth0, okta
+OAUTH_TENANT_ID = os.getenv("OAUTH_TENANT_ID", "")  # For azure
+
+# Initialize JWT validator
+jwt_validator = None
+
+if OAUTH_PROVIDER and OAUTH_PROVIDER != "custom":
+    # Use predefined provider configuration
+    try:
+        from ..auth.jwt_validator import OAuth2ProviderValidator
+        
+        provider_config = {}
+        if OAUTH_DOMAIN:
+            provider_config["domain"] = OAUTH_DOMAIN
+        if OAUTH_TENANT_ID:
+            provider_config["tenant_id"] = OAUTH_TENANT_ID
+        
+        jwt_validator = OAuth2ProviderValidator.create_validator(
+            OAUTH_PROVIDER,
+            audience=OAUTH_AUDIENCE,
+            **provider_config
+        )
+        logger.info(f"🔐 OAuth2 validation enabled for provider: {OAUTH_PROVIDER}")
+        
+    except Exception as e:
+        logger.error(f"Failed to initialize OAuth2 provider {OAUTH_PROVIDER}: {e}")
+        
+elif OAUTH_JWKS_URL and OAUTH_ISSUER:
+    # Use custom OAuth2 provider configuration
+    try:
+        from ..auth.jwt_validator import JWTValidator
+        
+        jwt_validator = JWTValidator(
+            jwks_url=OAUTH_JWKS_URL,
+            issuer=OAUTH_ISSUER,
+            audience=OAUTH_AUDIENCE
+        )
+        logger.info(f"🔒 Custom OAuth2 validation enabled (issuer: {OAUTH_ISSUER})")
+        
+    except Exception as e:
+        logger.error(f"Failed to initialize custom OAuth2 validator: {e}")
+        
+else:
+    logger.warning(f"⚠️  No OAuth2 configuration found - all requests will be rejected")
+    logger.info("Set OAUTH_PROVIDER (auth0/google/azure/okta) or OAUTH_JWKS_URL + OAUTH_ISSUER")
 
 
 async def extract_auth_context(request: Request) -> JsonRpcContext:
@@ -77,51 +141,69 @@ async def extract_auth_context(request: Request) -> JsonRpcContext:
 
 async def validate_oauth_token(token: str) -> Optional[Dict[str, Any]]:
     """
-    Validate OAuth2 token and return user information.
-    
-    This is a placeholder implementation. In production, this should:
-    - Validate token signature using public key
-    - Check token expiration
-    - Verify token scopes and issuer
-    - Return user claims from token
+    Validate OAuth2 JWT token using configured OAuth2 provider.
     
     Args:
-        token: OAuth2 bearer token
+        token: OAuth2 bearer token (JWT)
         
     Returns:
-        Dictionary with user information or None if invalid
+        Dictionary with token claims and user information
         
     Raises:
         AuthenticationFailed: If token is invalid
         TokenExpired: If token is expired
     """
-    # PLACEHOLDER IMPLEMENTATION
-    # In production, replace with proper OAuth2 validation:
-    # - Use libraries like python-jose, authlib, or PyJWT
-    # - Validate against your OAuth2 provider (e.g., Auth0, Google, custom)
-    # - Check token signature, expiration, and scopes
-    
     if not token:
-        return None
+        raise AuthenticationFailed("No token provided")
     
-    # Mock validation for development/testing
-    if token == "invalid-token":
-        raise AuthenticationFailed("Invalid token")
+    if not jwt_validator:
+        logger.error("No JWT validator configured")
+        raise AuthenticationFailed("OAuth2 authentication not configured")
     
-    if token == "expired-token":
-        raise TokenExpired("Token expired")
-    
-    # Mock user info - replace with real token parsing
-    if token.startswith("dev-"):
-        return {
-            "sub": "user-123",  # Subject (user ID)
-            "agent_id": "test-agent",
-            "scope": "acp:tasks:read acp:tasks:write acp:streams:read",
-            "exp": int(time.time()) + 3600,  # Expires in 1 hour
-            "iss": "https://auth.yourcompany.com"
+    try:
+        # Validate JWT token using configured provider
+        payload = await jwt_validator.validate_token(token)
+        
+        # Extract scope information (different providers use different claim names)
+        scopes = []
+        for scope_claim in ["scope", "scp", "permissions"]:
+            if scope_claim in payload:
+                scope_value = payload[scope_claim]
+                if isinstance(scope_value, str):
+                    scopes = scope_value.split()
+                elif isinstance(scope_value, list):
+                    scopes = scope_value
+                break
+        
+        # Normalize payload for ACP context
+        user_info = {
+            "sub": payload.get("sub"),  # Subject (user ID)
+            "iss": payload.get("iss"),  # Issuer
+            "aud": payload.get("aud"),  # Audience
+            "exp": payload.get("exp"),  # Expiration time
+            "iat": payload.get("iat"),  # Issued at
+            "scope": " ".join(scopes) if scopes else "",
+            "agent_id": payload.get("agent_id", payload.get("azp", payload.get("client_id"))),  # Agent/client ID
+            "_provider": payload.get("_acp_provider", "unknown")
         }
-    
-    return None
+        
+        # Add any additional claims
+        for key, value in payload.items():
+            if key not in user_info and not key.startswith("_"):
+                user_info[key] = value
+        
+        logger.debug(f"🔐 OAuth2 authenticated user: {user_info.get('sub')} with scopes: {user_info.get('scope')}")
+        return user_info
+        
+    except jwt.ExpiredSignatureError:
+        logger.warning("JWT token expired")
+        raise TokenExpired("JWT token expired")
+    except jwt.InvalidTokenError as e:
+        logger.warning(f"JWT token validation failed: {e}")
+        raise AuthenticationFailed(f"Invalid JWT token: {str(e)}")
+    except Exception as e:
+        logger.error(f"Unexpected error validating JWT token: {e}")
+        raise AuthenticationFailed(f"Token validation error: {str(e)}")
 
 
 async def logging_middleware(request: Request, call_next):

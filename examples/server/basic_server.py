@@ -3,11 +3,12 @@
 Basic ACP Server Example - Local Testing Version
 
 Demonstrates how to create a simple ACP server to handle incoming requests.
-This version is configured for local testing with mock authentication.
+Requires OAuth2 authentication with valid JWT tokens.
 
 To test locally:
-1. Run this server: python basic_server.py
-2. In another terminal, run the client: python ../client/basic_client.py
+1. Configure OAuth2 environment variables
+2. Run this server: python basic_server.py  
+3. In another terminal, run the client: python ../client/basic_client.py
 """
 
 import datetime
@@ -39,8 +40,8 @@ def main():
     """Basic server usage example"""
     
     print("🚀 Starting ACP Local Test Server...")
-    print("📋 Mock OAuth tokens accepted: any token starting with 'dev-'")
-    print("🔐 Example: Authorization: Bearer dev-local-test-token")
+    print("🔐 Requires OAuth2 authentication with valid JWT tokens")
+    print("🛠️  Configure OAuth2 environment variables")
     print()
     
     # Create server instance
@@ -50,6 +51,7 @@ def main():
         enable_logging=True
     )
     
+
     @server.method_handler("tasks.create")
     async def handle_task_create(params, context):
         """
@@ -126,10 +128,55 @@ def main():
             traceback.print_exc()
             raise
     
+    @server.method_handler("tasks.send")
+    async def handle_task_send(params, context):
+        """Handle sending additional messages to existing tasks"""
+        task_id = params.taskId
+        message = params.message
+        
+        print(f"📨 Sending message to task: {task_id}")
+        
+        # Extract message content
+        user_content = ""
+        if message and message.parts:
+            for part in message.parts:
+                if part.type == Type.text_part:
+                    user_content = part.content or ""
+                    break
+        
+        print(f"💬 Additional message: {user_content}")
+        
+        # Generate response to the additional message
+        ai_response = generate_mock_response(user_content)
+        
+        now_dt = datetime.datetime.now()
+        
+        # Create agent response to the new message
+        agent_message = Message(
+            role=Role.agent,
+            parts=[Part(
+                type=Type.text_part,
+                content=f"📨 Received additional message for task {task_id}. {ai_response}"
+            )],
+            timestamp=now_dt,
+            agentId="local-test-agent"
+        )
+        
+        # Return task update response
+        return {
+            "type": Type1.task,
+            "task": {
+                "taskId": task_id,
+                "status": "WORKING",
+                "updatedAt": now_dt,
+                "newMessage": agent_message
+            }
+        }
+
     @server.method_handler("tasks.get")
     async def handle_task_get(params, context):
         """Handle task status requests"""
-        task_id = params.task_id
+        task_id = params.taskId
         print(f"📋 Getting status for task: {task_id}")
         
         now_dt = datetime.datetime.now()
@@ -162,6 +209,102 @@ def main():
             "task": task_obj  # Now a TaskObject instance, not dict
         }
     
+    def has_stream_scope(context):
+        """Check if context has required stream scope (uses proper OAuth2 validation)"""
+        return context.has_scope('acp:streams:write')
+
+    @server.method_handler("stream.start")
+    async def handle_stream_start(params, context):
+        """
+        Handle stream start requests (mock implementation).
+        """
+        print("DEBUG context:", context)
+        print("DEBUG context dict:", getattr(context, '__dict__', {}))
+        try:
+            if not has_stream_scope(context):
+                raise Exception("Stream operations require 'acp:streams:write' scope (bypassed for dev tokens)")
+            stream_id = f"stream-{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}"
+            now_dt = datetime.datetime.now()
+            stream_obj = {
+                "streamId": stream_id,
+                "status": "ACTIVE",
+                "participants": getattr(params, "participants", [context.user_id]),
+                "createdAt": now_dt,
+                "metadata": getattr(params, "metadata", {})
+            }
+            print(f"🟢 Stream started: {stream_id} by {context.user_id}")
+            return {"type": "stream", "stream": stream_obj}
+        except Exception as e:
+            print(f"❌ Error in stream.start handler: {e}")
+            import traceback; traceback.print_exc(); raise
+
+    @server.method_handler("stream.message")
+    async def handle_stream_message(params, context):
+        """
+        Handle stream message requests (mock implementation).
+        """
+        try:
+            if not has_stream_scope(context):
+                raise Exception("Stream operations require 'acp:streams:write' scope (bypassed for dev tokens)")
+            stream_id = getattr(params, "streamId", None)
+            message = getattr(params, "message", None)
+            print(f"💬 Received stream message for {stream_id} from {context.user_id}: {message}")
+            return {"type": "stream_message_ack", "streamId": stream_id}
+        except Exception as e:
+            print(f"❌ Error in stream.message handler: {e}")
+            import traceback; traceback.print_exc(); raise
+
+    @server.method_handler("stream.end")
+    async def handle_stream_end(params, context):
+        """
+        Handle stream end requests (mock implementation).
+        """
+        try:
+            if not has_stream_scope(context):
+                raise Exception("Stream operations require 'acp:streams:write' scope (bypassed for dev tokens)")
+            stream_id = getattr(params, "streamId", None)
+            reason = getattr(params, "reason", "User requested end")
+            print(f"🔴 Stream ended: {stream_id} by {context.user_id} (Reason: {reason})")
+            return {"type": "stream_end_ack", "streamId": stream_id, "reason": reason}
+        except Exception as e:
+            print(f"❌ Error in stream.end handler: {e}")
+            import traceback; traceback.print_exc(); raise
+
+    @server.method_handler("stream.chunk")
+    async def handle_stream_chunk(params, context):
+        """
+        Handle stream chunk notifications (mock implementation).
+        """
+        try:
+            if not has_stream_scope(context):
+                raise Exception("Stream operations require 'acp:streams:write' scope")
+            stream_id = getattr(params, "streamId", None)
+            chunk = getattr(params, "chunk", None)
+            sequence = getattr(params, "sequence", 0)
+            is_last = getattr(params, "isLast", False)
+            
+            # Extract chunk content if it's a message
+            chunk_content = "Unknown chunk"
+            if chunk and hasattr(chunk, 'parts'):
+                for part in chunk.parts:
+                    if part.type == Type.text_part:
+                        chunk_content = part.content or ""
+                        break
+            
+            print(f"🟣 Stream chunk for {stream_id}: seq={sequence}, last={is_last}")
+            print(f"   📦 Chunk content: {chunk_content[:50]}...")
+            
+            return {
+                "type": "stream_chunk_ack", 
+                "streamId": stream_id, 
+                "sequence": sequence, 
+                "isLast": is_last,
+                "processed": True
+            }
+        except Exception as e:
+            print(f"❌ Error in stream.chunk handler: {e}")
+            import traceback; traceback.print_exc(); raise
+    
     # Start the server
     print()
     print("🌐 Server URLs:")
@@ -169,7 +312,24 @@ def main():
     print("  • Agent info: http://localhost:8002/.well-known/agent.json")
     print("  • JSON-RPC endpoint: http://localhost:8002/jsonrpc")
     print()
-    print("🧪 Test with client: python ../client/basic_client.py")
+    print("🎯 ALL ACP METHODS SUPPORTED:")
+    print("   📬 Task Methods:")
+    print("     • tasks.create - Create async tasks")
+    print("     • tasks.send - Send messages to existing tasks")
+    print("     • tasks.get - Get task status and results")
+    print("   🔄 Stream Methods:")
+    print("     • stream.start - Start real-time streams")
+    print("     • stream.message - Send real-time messages")
+    print("     • stream.chunk - Send chunked data")
+    print("     • stream.end - End streams")
+    print()
+    print("🔐 OAuth2 scopes required:")
+    print("   • acp:agent:identify (all operations)")
+    print("   • acp:tasks:write (task creation/sending)")
+    print("   • acp:tasks:read (task retrieval)")
+    print("   • acp:streams:write (stream operations)")
+    print()
+    print("🧪 Test with: python ../client/basic_client.py")
     print("⏹️  Press Ctrl+C to stop")
     print()
     
@@ -177,4 +337,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main() 
+    main()

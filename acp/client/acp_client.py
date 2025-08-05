@@ -11,7 +11,7 @@ from pydantic import BaseModel
 
 from ..models.generated import (
     TasksCreateParams, TasksSendParams, TasksGetParams,
-    StreamStartParams, StreamMessageParams,
+    StreamStartParams, StreamMessageParams, StreamEndParams, StreamChunkParams,
     JsonRpcRequest, JsonRpcResponse, RpcError, Jsonrpc, Method
 )
 from ..core.json_rpc import JsonRpcError, JsonRpcProcessor
@@ -148,6 +148,30 @@ class ACPClient:
         request = JsonRpcRequest(
             jsonrpc=Jsonrpc.field_2_0,
             method=Method.stream_message,
+            params=params.model_dump(by_alias=True, mode='json'),
+            id=self._generate_id()
+        )
+        
+        response_data = await self._call(request)
+        return response_data["result"]
+    
+    async def stream_end(self, params: StreamEndParams) -> Dict[str, Any]:
+        """End active stream."""
+        request = JsonRpcRequest(
+            jsonrpc=Jsonrpc.field_2_0,
+            method=Method.stream_end,
+            params=params.model_dump(by_alias=True, mode='json'),
+            id=self._generate_id()
+        )
+        
+        response_data = await self._call(request)
+        return response_data["result"]
+    
+    async def stream_chunk(self, params: StreamChunkParams) -> Dict[str, Any]:
+        """Send chunked data in stream."""
+        request = JsonRpcRequest(
+            jsonrpc=Jsonrpc.field_2_0,
+            method=Method.stream_chunk,
             params=params.model_dump(by_alias=True, mode='json'),
             id=self._generate_id()
         )

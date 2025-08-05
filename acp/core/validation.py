@@ -266,25 +266,72 @@ class RequestValidator:
     
     async def _validate_business_rules(self, request: JsonRpcRequest, context) -> None:
         """
-        Validate ACP business rules.
-        Override this method to add custom validation logic.
+        Validate ACP business rules and OAuth2 enforcement.
+        All operations require authentication and proper scopes.
         """
         method = request.method.value
         
-        # Example: Validate task operations require authentication
-        if method.startswith('tasks.') and not context.is_authenticated:
+        # ALL OPERATIONS REQUIRE AUTHENTICATION
+        if not context.is_authenticated:
             raise JsonRpcError(
                 JsonRpcProcessor.AUTHENTICATION_FAILED,
-                "Task operations require authentication"
+                f"Method '{method}' requires OAuth2 authentication"
             )
         
-        # Example: Validate stream operations require specific scopes
-        if method.startswith('stream.') and not context.has_scope('acp:streams:write'):
+        # ALL OPERATIONS REQUIRE BASIC AGENT IDENTIFICATION SCOPE
+        if not context.has_scope('acp:agent:identify'):
             raise JsonRpcError(
                 JsonRpcProcessor.INSUFFICIENT_SCOPE,
-                "Stream operations require 'acp:streams:write' scope",
-                {"requiredScopes": ["acp:streams:write"]}
+                f"Method '{method}' requires 'acp:agent:identify' scope",
+                {"requiredScopes": ["acp:agent:identify"]}
             )
+        
+        # TASK OPERATIONS SCOPE ENFORCEMENT
+        if method == 'tasks.create' or method == 'tasks.send':
+            if not context.has_scope('acp:tasks:write'):
+                raise JsonRpcError(
+                    JsonRpcProcessor.INSUFFICIENT_SCOPE,
+                    f"Method '{method}' requires 'acp:tasks:write' scope",
+                    {"requiredScopes": ["acp:tasks:write"]}
+                )
+        elif method == 'tasks.get':
+            if not context.has_scope('acp:tasks:read'):
+                raise JsonRpcError(
+                    JsonRpcProcessor.INSUFFICIENT_SCOPE,
+                    f"Method '{method}' requires 'acp:tasks:read' scope",
+                    {"requiredScopes": ["acp:tasks:read"]}
+                )
+        elif method == 'tasks.cancel':
+            if not context.has_scope('acp:tasks:cancel'):
+                raise JsonRpcError(
+                    JsonRpcProcessor.INSUFFICIENT_SCOPE,
+                    f"Method '{method}' requires 'acp:tasks:cancel' scope",
+                    {"requiredScopes": ["acp:tasks:cancel"]}
+                )
+        elif method == 'tasks.subscribe':
+            if not context.has_scope('acp:notifications:receive'):
+                raise JsonRpcError(
+                    JsonRpcProcessor.INSUFFICIENT_SCOPE,
+                    f"Method '{method}' requires 'acp:notifications:receive' scope",
+                    {"requiredScopes": ["acp:notifications:receive"]}
+                )
+        
+        # STREAM OPERATIONS SCOPE ENFORCEMENT
+        if method == 'stream.start' or method == 'stream.message' or method == 'stream.end':
+            if not context.has_scope('acp:streams:write'):
+                raise JsonRpcError(
+                    JsonRpcProcessor.INSUFFICIENT_SCOPE,
+                    f"Method '{method}' requires 'acp:streams:write' scope",
+                    {"requiredScopes": ["acp:streams:write"]}
+                )
+        elif method.startswith('stream.') and method not in ['stream.start', 'stream.message', 'stream.end']:
+            # Other stream operations require read access
+            if not context.has_scope('acp:streams:read'):
+                raise JsonRpcError(
+                    JsonRpcProcessor.INSUFFICIENT_SCOPE,
+                    f"Method '{method}' requires 'acp:streams:read' scope",
+                    {"requiredScopes": ["acp:streams:read"]}
+                )
 
 
 class ResponseValidator:

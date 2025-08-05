@@ -47,21 +47,6 @@ Example agent capability discovery files:
 
 ## Running the Examples
 
-### 🚀 Quick Local Test (Recommended)
-
-Run both server and client together for immediate testing:
-
-```bash
-cd examples/
-python local_test.py
-```
-
-This will:
-1. Start the local ACP server
-2. Run the client with test messages  
-3. Show the complete request/response flow
-4. Automatically clean up
-
 ### 📋 Manual Testing
 
 #### Server Example
@@ -89,10 +74,44 @@ python basic_client.py
 
 The examples are designed for immediate local testing:
 
-#### Mock Authentication
-- **Server**: Accepts any OAuth2 token starting with `dev-`
-- **Client**: Uses `dev-local-test-token` for testing
-- **Validation**: Real OAuth2 validation disabled for local development
+#### OAuth2 Authentication
+
+The examples demonstrate production-ready OAuth2 authentication using real OAuth2 providers:
+
+**Supported OAuth2 Providers:**
+- **Auth0**: Enterprise identity platform
+- **Google OAuth2**: Google Cloud and workspace authentication
+- **Azure AD**: Microsoft Azure Active Directory
+- **Okta**: Enterprise identity management
+- **Custom**: Any OAuth2 provider with JWKS endpoint
+
+**OAuth2 Flow:**
+- **Client Credentials Grant**: Machine-to-machine authentication
+- **JWT Token Validation**: JWKS-based signature verification
+- **Scope Enforcement**: Fine-grained permission control
+- **Token Caching**: Automatic token refresh and management
+
+**Required Scopes:**
+- **All operations** require `acp:agent:identify` scope
+- **`tasks.create`** & **`tasks.send`** require `acp:tasks:write`
+- **`tasks.get`** requires `acp:tasks:read`  
+- **`tasks.cancel`** requires `acp:tasks:cancel`
+- **`tasks.subscribe`** requires `acp:notifications:receive`
+- **Stream write operations** require `acp:streams:write`
+- **Stream read operations** require `acp:streams:read`
+
+**Setup Guide:**
+```bash
+# Configure your OAuth2 provider (example for Auth0)
+export OAUTH_PROVIDER=auth0
+export OAUTH_DOMAIN=your-domain.auth0.com
+export OAUTH_CLIENT_ID=your-client-id
+export OAUTH_CLIENT_SECRET=your-secret
+export OAUTH_AUDIENCE=https://your-api.com
+
+# Test the client
+python client/basic_client.py
+```
 
 #### Intelligent Responses  
 The local server provides context-aware mock responses:
@@ -103,10 +122,19 @@ The local server provides context-aware mock responses:
 - **"help"** → Help menu
 - **"test"** → Test confirmation
 
+#### 🔒 Security Configuration
+
+**Security Features:**
+- 🔒 **OAuth2 Required**: All endpoints require valid OAuth2 authentication
+- 🔑 **JWT Validation**: Proper token signature and expiration checking
+- 📋 **Scope Enforcement**: Fine-grained permission control per operation
+- 📝 **Audit Logging**: All authentication decisions logged for monitoring
+
 #### Security Warnings ⚠️
 - **HTTP**: Local examples use HTTP for simplicity (production requires HTTPS)
-- **Mock OAuth**: Uses fake tokens (production requires real OAuth2)
+- **OAuth2 Required**: All operations require valid OAuth2 tokens
 - **Development Only**: Never use `allow_http=True` in production
+- **Token Security**: JWT tokens have expiration and proper validation
 
 ## Integration Examples
 

@@ -8,7 +8,7 @@ Homepage: https://acp-protocol.org
 Documentation: https://docs.acp-protocol.org
 """
 
-__version__ = "1.1.2"
+__version__ = "1.2.0"
 __author__ = "Moein Roghani"
 __email__ = "moein.roghani@proton.me"
 __license__ = "MIT"
